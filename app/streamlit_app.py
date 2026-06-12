@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import tempfile
+import re
 from pathlib import Path
 import streamlit as st
 from PIL import Image
@@ -16,10 +17,13 @@ uploaded = st.file_uploader("Déposer une radiographie thoracique frontale", typ
 mode = st.selectbox("Mode", ["baseline", "improved"])
 
 if uploaded:
-    suffix = Path(uploaded.name).suffix
-    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-        tmp.write(uploaded.read())
-        tmp_path = Path(tmp.name)
+    original_name = Path(uploaded.name or "image.png").name
+    suffix = Path(original_name).suffix or ".png"
+    stem = Path(original_name).stem or "image"
+    safe_stem = re.sub(r"[^A-Za-z0-9_.-]+", "_", stem)
+    tmp_dir = Path(tempfile.mkdtemp(prefix="assistant_radio_"))
+    tmp_path = tmp_dir / f"{safe_stem}{suffix}"
+    tmp_path.write_bytes(uploaded.read())
 
     col1, col2 = st.columns([1, 1])
     with col1:
