@@ -112,6 +112,15 @@ Les sorties d'evaluation sont generees dans `eval/outputs/` et les logs SQLite
 dans `medical_ai_evidence.sqlite`. Ces fichiers sont locaux et ne doivent pas
 etre commits.
 
+## Documentation projet
+
+- `docs/appel_offre.md` : cadrage et attendus du projet.
+- `docs/architecture.md` : pipeline cible et composants techniques.
+- `docs/evaluation_protocol.md` : metriques et protocole de validation.
+- `docs/ethique_et_limites.md` : avertissements, limites et garde-fous.
+- `docs/etat_de_l_art_choix_technos.md` : etat de l'art, choix technologiques
+  et justification autour de CheXpert Small.
+
 ## Structure du depot
 
 ```text
