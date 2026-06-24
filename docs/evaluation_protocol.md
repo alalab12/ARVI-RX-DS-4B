@@ -36,6 +36,16 @@ Le jeu synthétique fourni sert uniquement à valider le pipeline logiciel : cha
 
 Ne jamais montrer seulement des réussites. Une bonne défense montre aussi les faux positifs, les faux négatifs, les incertitudes et les limites de qualité image.
 
+## Décision prompt improved_v2
+
+Le prompt `improved_v1` est rejeté après le smoke test MedGemma : il augmente
+les opacités prédites normales et renforce le biais vers la classe `normal`.
+La version `improved_v2` impose l'ordre qualité, recherche d'opacité,
+incertitude, puis classe normale en dernier. Les garde-fous convertissent aussi
+`poor` et `limited + normal` en `uncertain`. Ces transformations sont
+journalisées dans `guardrail_actions` afin de les distinguer de la sortie du
+modèle.
+
 ## Smoke test attendu
 
 Avant toute démonstration, le dépôt doit passer un contrôle court :

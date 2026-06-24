@@ -27,12 +27,30 @@ def validate_prediction(pred: dict[str, Any]) -> tuple[bool, list[str]]:
 
 def apply_safety_guardrails(pred: dict[str, Any]) -> dict[str, Any]:
     valid, errors = validate_prediction(pred)
+    actions: list[str] = []
     if not valid:
         pred["predicted_class"] = "uncertain"
         pred["confidence"] = min(float(pred.get("confidence", 0.0) or 0.0), 0.5)
         pred.setdefault("limitations", []).append("guardrail triggered: invalid output schema")
-    if pred.get("image_quality") in {"limited", "poor"} and float(pred.get("confidence", 0)) < 0.6:
+        actions.append("invalid_schema_to_uncertain")
+
+    quality = pred.get("image_quality")
+    predicted_class = pred.get("predicted_class")
+    confidence = float(pred.get("confidence", 0) or 0)
+
+    if quality == "poor":
         pred["predicted_class"] = "uncertain"
+        pred["confidence"] = min(confidence, 0.5)
+        actions.append("poor_quality_to_uncertain")
+    elif quality == "limited" and predicted_class == "normal":
+        pred["predicted_class"] = "uncertain"
+        pred["confidence"] = min(confidence, 0.5)
+        actions.append("limited_normal_to_uncertain")
+    elif quality == "limited" and confidence < 0.6:
+        pred["predicted_class"] = "uncertain"
+        actions.append("limited_low_confidence_to_uncertain")
+
     pred["warning"] = WARNING_TEXT
     pred["guardrail_errors"] = errors
+    pred["guardrail_actions"] = actions
     return pred

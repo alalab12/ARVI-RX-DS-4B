@@ -6,7 +6,7 @@ from pathlib import Path
 PROMPT_DIR = Path(__file__).resolve().parents[1] / "prompts"
 PROMPTS = {
     "baseline": ("baseline_prompt.txt", "baseline_v1"),
-    "improved": ("improved_prompt.txt", "improved_v1"),
+    "improved": ("improved_prompt.txt", "improved_v2"),
 }
 
 

@@ -16,6 +16,7 @@ from api.main import health
 from src.guardrails import WARNING_TEXT, apply_safety_guardrails, validate_prediction
 from src.inference import predict, toy_predict
 from src.metrics import summarize_metrics
+from src.prompting import load_prompt
 from src.schemas import PredictionParseError, parse_prediction_json
 
 
@@ -97,6 +98,57 @@ def test_invalid_model_output_falls_back_to_uncertain() -> None:
     assert pred["confidence"] <= 0.5
     assert pred["warning"] == WARNING_TEXT
     assert pred["guardrail_errors"]
+
+
+def test_quality_guardrails_prevent_unsafe_normal_output() -> None:
+    poor = apply_safety_guardrails({
+        "image_quality": "poor",
+        "predicted_class": "suspected_opacity",
+        "confidence": 0.95,
+        "visual_evidence": ["Possible opacity"],
+        "justification": "The image is poorly exposed.",
+        "limitations": ["Poor exposure"],
+        "warning": "Educational prototype only",
+    })
+    limited_normal = apply_safety_guardrails({
+        "image_quality": "limited",
+        "predicted_class": "normal",
+        "confidence": 0.90,
+        "visual_evidence": ["No focal opacity identified"],
+        "justification": "The projection is limited.",
+        "limitations": ["Limited projection"],
+        "warning": "Educational prototype only",
+    })
+
+    assert poor["predicted_class"] == "uncertain"
+    assert poor["confidence"] <= 0.5
+    assert "poor_quality_to_uncertain" in poor["guardrail_actions"]
+    assert limited_normal["predicted_class"] == "uncertain"
+    assert limited_normal["confidence"] <= 0.5
+    assert "limited_normal_to_uncertain" in limited_normal["guardrail_actions"]
+
+
+def test_limited_high_confidence_opacity_is_preserved() -> None:
+    pred = apply_safety_guardrails({
+        "image_quality": "limited",
+        "predicted_class": "suspected_opacity",
+        "confidence": 0.80,
+        "visual_evidence": ["Focal opacity-like density"],
+        "justification": "Visible evidence remains despite limited projection.",
+        "limitations": ["Limited projection"],
+        "warning": "Educational prototype only",
+    })
+
+    assert pred["predicted_class"] == "suspected_opacity"
+    assert pred["guardrail_actions"] == []
+
+
+def test_improved_prompt_uses_v2_decision_order() -> None:
+    prompt, version = load_prompt("improved")
+
+    assert version == "improved_v2"
+    assert 'Return "normal" only when image quality is good' in prompt
+    assert 'If image_quality is "limited", do not return "normal"' in prompt
 
 
 def test_medgemma_json_parser_accepts_fenced_output() -> None:
