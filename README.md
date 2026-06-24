@@ -112,6 +112,40 @@ Les sorties d'evaluation sont generees dans `eval/outputs/` et les logs SQLite
 dans `medical_ai_evidence.sqlite`. Ces fichiers sont locaux et ne doivent pas
 etre commits.
 
+## Executer MedGemma sur Kaggle
+
+Le backend reste `toy` par defaut. Le modele MedGemma n'est donc ni telecharge
+ni charge pendant les tests locaux.
+
+Dans un notebook Kaggle avec GPU, cloner le depot puis installer les
+dependances :
+
+```python
+!git clone https://github.com/alalab12/ARVI-RX-DS-4B.git
+%cd ARVI-RX-DS-4B
+!pip install -q -r requirements.txt
+```
+
+Ajouter `HF_TOKEN` dans les secrets Kaggle apres avoir obtenu l'acces au modele,
+puis selectionner le vrai backend :
+
+```python
+import os
+from kaggle_secrets import UserSecretsClient
+
+os.environ["HF_TOKEN"] = UserSecretsClient().get_secret("HF_TOKEN")
+os.environ["MODEL_BACKEND"] = "medgemma"
+os.environ["MEDGEMMA_MODEL_ID"] = "google/medgemma-4b-it"
+
+from src.inference import predict
+
+result = predict("/kaggle/input/chexpert/path/to/frontal-image.jpg", mode="baseline")
+result
+```
+
+Le modele est charge au premier appel puis reutilise. La confiance retournee
+est declaree par le modele generatif et n'est pas une probabilite calibree.
+
 ## Documentation projet
 
 - `docs/appel_offre.md` : cadrage et attendus du projet.

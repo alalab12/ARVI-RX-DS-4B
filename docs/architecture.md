@@ -5,18 +5,25 @@
 ## Pipeline
 
 ```text
-Image upload → Preprocessing → VLM / toy model → Guardrails → JSON → UI → SQLite logs
+Image upload → Preprocessing → MedGemma + prompt → JSON parser → Guardrails → UI → SQLite logs
 ```
 
 ## Composants
 
 - `src/preprocessing.py` : validation de fichier, chargement image, resizing.
-- `src/inference.py` : inférence jouet ou connecteur modèle.
+- `src/medgemma.py` : chargement paresseux du processor et du modèle MedGemma.
+- `src/prompting.py` : chargement et versionnement des prompts.
+- `src/schemas.py` : validation Pydantic du JSON généré.
+- `src/inference.py` : orchestration commune des backends jouet et MedGemma.
 - `src/guardrails.py` : validation JSON, warning, incertitude.
 - `src/metrics.py` : accuracy, macro-F1, sensibilité, spécificité, validité JSON.
 - `src/database.py` : initialisation SQLite et stockage des runs.
 - `api/main.py` : endpoint FastAPI `/predict`.
 - `app/streamlit_app.py` et `app/gradio_app.py` : interfaces rapides.
+
+Le backend est sélectionné avec `MODEL_BACKEND=toy|medgemma`. Le mode jouet
+reste la valeur par défaut pour les tests locaux. Sur Kaggle, MedGemma est
+chargé au premier appel puis réutilisé pour les prédictions suivantes.
 
 ## Endpoint attendu
 

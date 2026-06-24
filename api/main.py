@@ -3,10 +3,9 @@ from __future__ import annotations
 import re
 import shutil
 from pathlib import Path
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, File, HTTPException, UploadFile
 
-from src.inference import toy_predict
-from src.guardrails import apply_safety_guardrails
+from src.inference import predict as run_prediction
 
 app = FastAPI(title="Assistant radiologue virtuel EFREI", version="0.1.0")
 UPLOAD_DIR = Path("tmp_uploads")
@@ -27,5 +26,9 @@ async def predict(file: UploadFile = File(...)) -> dict:
     target = UPLOAD_DIR / f"uploaded_{safe_stem}{suffix}"
     with target.open("wb") as f:
         shutil.copyfileobj(file.file, f)
-    pred = toy_predict(target, mode="improved")
-    return apply_safety_guardrails(pred)
+    try:
+        return run_prediction(target, mode="improved")
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    except RuntimeError as error:
+        raise HTTPException(status_code=503, detail="Model inference is unavailable") from error

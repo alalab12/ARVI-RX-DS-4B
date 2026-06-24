@@ -159,21 +159,31 @@ Justification :
 
 ### Baseline modele
 
-Choix principal : DenseNet-121 pre-entrainee via TorchXRayVision.
+Choix principal du cahier des charges : MedGemma 4B instruction-tuned en
+prompting, sans entrainement initial.
 
 Justification :
 
-- architecture historiquement forte en CXR ;
-- disponible avec poids pre-entraines CXR ;
-- rapide a brancher ;
-- suffisante pour un prototype pedagogique ;
-- probabilites multi-label directement exploitables.
+- modele vision-langage medical capable de recevoir une radiographie et une
+  instruction textuelle ;
+- generation directe du JSON, des observations, des limites et du warning ;
+- aucune phase d'entrainement pour etablir la baseline ;
+- comparaison rapide de plusieurs prompts ;
+- alignement avec l'architecture et la voie rapide du cahier des charges.
 
-Sortie a utiliser :
+Important : la confiance generee par le VLM est auto-declaree et non calibree.
+Elle doit etre presentee comme telle et encadree par les garde-fous.
+
+### Classifieur complementaire
+
+Choix optionnel : DenseNet-121 pre-entrainee via TorchXRayVision.
+
+Role :
 
 - recuperer la probabilite `Lung Opacity` ;
 - optionnellement combiner avec `Consolidation` et `Pneumonia` ;
-- convertir en classe projet avec des seuils.
+- fournir un second signal quantitatif au VLM ;
+- retourner `uncertain` en cas de faible confiance ou de desaccord.
 
 Exemple de regle simple :
 
@@ -187,22 +197,23 @@ sinon -> uncertain
 
 ### Amelioration modele
 
-Choix : fine-tuning leger ou calibration de seuils, pas LoRA au depart.
+Choix : prompt ameliore et garde-fous d'abord, LoRA seulement apres validation
+de la baseline.
 
 Justification :
 
-- plus realiste que fine-tuner un grand VLM ;
-- mesurable avec AUC, F1, sensibilite et specificite ;
+- aucune optimisation de poids avant d'avoir mesure les erreurs ;
+- comparaison mesurable entre prompt baseline et prompt ameliore ;
 - compatible avec les ressources d'un groupe et un delai court ;
 - defendable en soutenance.
 
 Ameliorations possibles :
 
-- fine-tuning de la derniere couche ;
-- reequilibrage des classes ;
-- gestion explicite des labels incertains ;
-- choix de seuils optimises sur validation ;
-- ajout d'une regle `uncertain` pour les cas ambigus.
+- validation stricte du JSON ;
+- regles `uncertain` pour les cas ambigus ;
+- ajout optionnel du classifieur DenseNet ;
+- calibration des seuils du classifieur ;
+- LoRA sur MedGemma uniquement si sa valeur ajoutee peut etre evaluee.
 
 ### Interface
 
@@ -272,8 +283,9 @@ CheXpert small CSV
 -> filtrage frontal AP/PA
 -> mapping labels projet
 -> preprocessing image
--> modele CXR pre-entraine / fine-tune
--> seuils + regle uncertain
+-> MedGemma 4B + prompt versionne
+-> parsing JSON + garde-fous
+-> classifieur DenseNet optionnel
 -> JSON de sortie
 -> Streamlit + FastAPI
 -> logs SQLite
@@ -295,9 +307,9 @@ ou optionnellement l'utiliser directement dans Kaggle (juste pour la phase d'ent
 
 ### Priorite 2 - Baseline
 
-- ajouter `src/chexpert_dataset.py` pour charger le CSV et les images ;
-- ajouter `src/model_inference.py` ou remplacer proprement le mode jouet ;
-- charger DenseNet-121 TorchXRayVision ;
+- charger MedGemma 4B sur Kaggle avec `src/medgemma.py` ;
+- comparer les prompts baseline et improved ;
+- valider strictement le JSON et appliquer les garde-fous ;
 - retourner le meme schema JSON que le prototype actuel.
 
 ### Priorite 3 - Evaluation
@@ -308,9 +320,9 @@ ou optionnellement l'utiliser directement dans Kaggle (juste pour la phase d'ent
 
 ### Priorite 4 - Amelioration
 
-- calibrer les seuils ;
-- ajouter une regle `uncertain` ;
-- optionnellement fine-tuner la derniere couche ;
+- ameliorer le prompt et les garde-fous ;
+- optionnellement ajouter puis calibrer DenseNet-121 ;
+- envisager LoRA uniquement apres validation ;
 - comparer baseline vs improved.
 
 ### Priorite 5 - Rapport et soutenance
@@ -328,14 +340,13 @@ Le choix le plus solide pour le groupe est :
 ```text
 CheXpert-v1.0-small
 + PyTorch
-+ TorchXRayVision DenseNet-121 pre-entrainee
-+ mapping Lung Opacity -> suspected_opacity
-+ seuils prudents avec classe uncertain
++ MedGemma 4B instruction-tuned + prompting
++ parsing JSON strict + classe uncertain
++ DenseNet-121 optionnelle comme signal complementaire
 + Streamlit/FastAPI
 + pandas/scikit-learn/SQLite
-+ Grad-CAM optionnel
 ```
 
 Ce choix est assez proche de l'etat de l'art pour etre credible, mais assez
-simple pour etre livre en 3 semaines. Les grands VLM medicaux et le fine-tuning
-lourd doivent rester des pistes de discussion, pas le coeur du prototype.
+simple pour etre livre en 3 semaines. LoRA reste une extension conditionnelle,
+pas un prerequis de la baseline.

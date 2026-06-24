@@ -1,10 +1,17 @@
 from __future__ import annotations
 
+from functools import lru_cache
+import os
 from pathlib import Path
 import time
 from typing import Any
 
+from .guardrails import apply_safety_guardrails
+from .medgemma import MedGemmaBackend
 from .preprocessing import basic_quality_flag
+from .preprocessing import load_image
+from .prompting import load_prompt
+from .schemas import PredictionParseError, parse_prediction_json
 
 WARNING = "Prototype pédagogique. Non destiné au diagnostic. Validation par un professionnel qualifié requise."
 
@@ -55,8 +62,71 @@ def toy_predict(image_path: str | Path, mode: str = "baseline") -> dict[str, Any
 
 
 def vlm_predict_placeholder(image_path: str | Path, prompt: str) -> dict[str, Any]:
-    """Placeholder for a Hugging Face / MedGemma / Gemma 4 VLM call.
+    """Backward-compatible entry point for a custom MedGemma prompt."""
 
-    Students should keep the same output schema as toy_predict.
-    """
-    return toy_predict(image_path, mode="baseline")
+    return medgemma_predict(image_path, prompt, prompt_version="custom_v1")
+
+
+@lru_cache(maxsize=1)
+def get_medgemma_backend() -> MedGemmaBackend:
+    """Create one shared backend and load model weights only on first use."""
+
+    return MedGemmaBackend()
+
+
+def _uncertain_model_output(reason: str) -> dict[str, Any]:
+    return {
+        "image_quality": "limited",
+        "predicted_class": "uncertain",
+        "confidence": 0.0,
+        "visual_evidence": [],
+        "justification": "The model response could not be validated, so no image interpretation is returned.",
+        "limitations": [reason, "uncalibrated generative model output"],
+        "warning": WARNING,
+    }
+
+
+def medgemma_predict(
+    image_path: str | Path,
+    prompt: str,
+    prompt_version: str,
+    model_backend: MedGemmaBackend | None = None,
+) -> dict[str, Any]:
+    """Run MedGemma, validate its JSON, and apply the safety contract."""
+
+    start = time.perf_counter()
+    backend = model_backend or get_medgemma_backend()
+    # The model processor owns resizing and normalization for real inference.
+    image = load_image(image_path, size=None)
+    raw_output = backend.generate(image, prompt)
+    try:
+        prediction = parse_prediction_json(raw_output)
+    except PredictionParseError as error:
+        prediction = _uncertain_model_output(str(error))
+
+    prediction.update(
+        {
+            "model_name": backend.model_id,
+            "prompt_version": prompt_version,
+            "latency_ms": int((time.perf_counter() - start) * 1000),
+            "confidence_type": "model_reported_uncalibrated",
+        }
+    )
+    return apply_safety_guardrails(prediction)
+
+
+def predict(
+    image_path: str | Path,
+    mode: str = "baseline",
+    backend: str | None = None,
+    model_backend: MedGemmaBackend | None = None,
+) -> dict[str, Any]:
+    """Common inference entry point for notebooks, API and user interfaces."""
+
+    selected_backend = (backend or os.getenv("MODEL_BACKEND", "toy")).lower()
+    if selected_backend == "toy":
+        return apply_safety_guardrails(toy_predict(image_path, mode=mode))
+    if selected_backend == "medgemma":
+        prompt, prompt_version = load_prompt(mode)
+        return medgemma_predict(image_path, prompt, prompt_version, model_backend)
+    raise ValueError(f"Unknown model backend: {selected_backend}")

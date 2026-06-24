@@ -14,8 +14,9 @@ from fastapi.testclient import TestClient
 from api.main import app
 from api.main import health
 from src.guardrails import WARNING_TEXT, apply_safety_guardrails, validate_prediction
-from src.inference import toy_predict
+from src.inference import predict, toy_predict
 from src.metrics import summarize_metrics
+from src.schemas import PredictionParseError, parse_prediction_json
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -96,6 +97,65 @@ def test_invalid_model_output_falls_back_to_uncertain() -> None:
     assert pred["confidence"] <= 0.5
     assert pred["warning"] == WARNING_TEXT
     assert pred["guardrail_errors"]
+
+
+def test_medgemma_json_parser_accepts_fenced_output() -> None:
+    raw_output = """```json
+    {
+      "image_quality": "good",
+      "predicted_class": "normal",
+      "confidence": 0.71,
+      "visual_evidence": ["No focal opacity described"],
+      "justification": "The visible lung fields do not show a focal opacity.",
+      "limitations": ["No clinical context"],
+      "warning": "Educational prototype only"
+    }
+    ```"""
+
+    pred = parse_prediction_json(raw_output)
+
+    assert pred["predicted_class"] == "normal"
+    assert pred["confidence"] == 0.71
+
+
+def test_medgemma_backend_is_testable_without_loading_model() -> None:
+    class FakeBackend:
+        model_id = "fake-medgemma"
+
+        def generate(self, image, prompt):
+            assert image.mode == "RGB"
+            assert "Return only valid JSON" in prompt
+            return """{
+              "image_quality": "limited",
+              "predicted_class": "uncertain",
+              "confidence": 0.42,
+              "visual_evidence": ["Projection is limited"],
+              "justification": "The image is not conclusive.",
+              "limitations": ["Limited projection"],
+              "warning": "Educational prototype only"
+            }"""
+
+    image_path = ROOT / "data" / "sample_images" / "CXR_SYN_006_uncertain.png"
+    pred = predict(
+        image_path,
+        mode="baseline",
+        backend="medgemma",
+        model_backend=FakeBackend(),
+    )
+
+    assert pred["predicted_class"] == "uncertain"
+    assert pred["model_name"] == "fake-medgemma"
+    assert pred["prompt_version"] == "baseline_v1"
+    assert pred["confidence_type"] == "model_reported_uncalibrated"
+
+
+def test_invalid_medgemma_text_is_rejected() -> None:
+    try:
+        parse_prediction_json("This is not JSON")
+    except PredictionParseError:
+        pass
+    else:
+        raise AssertionError("Invalid model output must not pass validation")
 
 
 def test_metrics_and_api_health_contract() -> None:
