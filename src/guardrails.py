@@ -26,6 +26,10 @@ def validate_prediction(pred: dict[str, Any]) -> tuple[bool, list[str]]:
 
 
 def apply_safety_guardrails(pred: dict[str, Any]) -> dict[str, Any]:
+    pred.setdefault("raw_predicted_class", pred.get("predicted_class"))
+    pred.setdefault("raw_confidence", pred.get("confidence"))
+    pred.setdefault("raw_image_quality", pred.get("image_quality"))
+
     valid, errors = validate_prediction(pred)
     actions: list[str] = []
     if not valid:
@@ -39,14 +43,16 @@ def apply_safety_guardrails(pred: dict[str, Any]) -> dict[str, Any]:
     confidence = float(pred.get("confidence", 0) or 0)
 
     if quality == "poor":
+        changed = predicted_class != "uncertain" or confidence > 0.5
         pred["predicted_class"] = "uncertain"
         pred["confidence"] = min(confidence, 0.5)
-        actions.append("poor_quality_to_uncertain")
+        if changed:
+            actions.append("poor_quality_to_uncertain")
     elif quality == "limited" and predicted_class == "normal":
         pred["predicted_class"] = "uncertain"
         pred["confidence"] = min(confidence, 0.5)
         actions.append("limited_normal_to_uncertain")
-    elif quality == "limited" and confidence < 0.6:
+    elif quality == "limited" and confidence < 0.6 and predicted_class != "uncertain":
         pred["predicted_class"] = "uncertain"
         actions.append("limited_low_confidence_to_uncertain")
 

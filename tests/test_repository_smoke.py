@@ -122,9 +122,12 @@ def test_quality_guardrails_prevent_unsafe_normal_output() -> None:
 
     assert poor["predicted_class"] == "uncertain"
     assert poor["confidence"] <= 0.5
+    assert poor["raw_predicted_class"] == "suspected_opacity"
+    assert poor["raw_confidence"] == 0.95
     assert "poor_quality_to_uncertain" in poor["guardrail_actions"]
     assert limited_normal["predicted_class"] == "uncertain"
     assert limited_normal["confidence"] <= 0.5
+    assert limited_normal["raw_predicted_class"] == "normal"
     assert "limited_normal_to_uncertain" in limited_normal["guardrail_actions"]
 
 
@@ -140,15 +143,42 @@ def test_limited_high_confidence_opacity_is_preserved() -> None:
     })
 
     assert pred["predicted_class"] == "suspected_opacity"
+    assert pred["raw_predicted_class"] == "suspected_opacity"
     assert pred["guardrail_actions"] == []
 
 
-def test_improved_prompt_uses_v2_decision_order() -> None:
-    prompt, version = load_prompt("improved")
+def test_guardrail_does_not_report_a_no_op_conversion() -> None:
+    pred = apply_safety_guardrails({
+        "image_quality": "limited",
+        "predicted_class": "uncertain",
+        "confidence": 0.20,
+        "visual_evidence": ["Ambiguous basal density"],
+        "justification": "Visible evidence is inconclusive.",
+        "limitations": ["Limited projection"],
+        "warning": "Educational prototype only",
+    })
 
-    assert version == "improved_v2"
-    assert 'Return "normal" only when image quality is good' in prompt
-    assert 'If image_quality is "limited", do not return "normal"' in prompt
+    assert pred["predicted_class"] == "uncertain"
+    assert pred["raw_predicted_class"] == "uncertain"
+    assert pred["guardrail_actions"] == []
+
+
+def test_prompt_history_and_improved_v3_priority() -> None:
+    prompt_v1, version_v1 = load_prompt("improved_v1")
+    prompt_v2, version_v2 = load_prompt("improved_v2")
+    prompt_v3, version_v3 = load_prompt("improved_v3")
+    current_prompt, current_version = load_prompt("improved")
+
+    assert [version_v1, version_v2, version_v3] == [
+        "improved_v1",
+        "improved_v2",
+        "improved_v3",
+    ]
+    assert len({prompt_v1, prompt_v2, prompt_v3}) == 3
+    assert current_version == "improved_v3"
+    assert current_prompt == prompt_v3
+    assert "Positive opacity-related evidence has priority" in prompt_v3
+    assert "AP, portable acquisition or visible devices alone" in prompt_v3
 
 
 def test_medgemma_json_parser_accepts_fenced_output() -> None:
@@ -199,6 +229,8 @@ def test_medgemma_backend_is_testable_without_loading_model() -> None:
     assert pred["model_name"] == "fake-medgemma"
     assert pred["prompt_version"] == "baseline_v1"
     assert pred["confidence_type"] == "model_reported_uncalibrated"
+    assert pred["raw_predicted_class"] == "uncertain"
+    assert pred["guardrail_actions"] == []
 
 
 def test_invalid_medgemma_text_is_rejected() -> None:

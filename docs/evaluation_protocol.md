@@ -36,15 +36,25 @@ Le jeu synthétique fourni sert uniquement à valider le pipeline logiciel : cha
 
 Ne jamais montrer seulement des réussites. Une bonne défense montre aussi les faux positifs, les faux négatifs, les incertitudes et les limites de qualité image.
 
-## Décision prompt improved_v2
+## Décisions sur les prompts
 
 Le prompt `improved_v1` est rejeté après le smoke test MedGemma : il augmente
 les opacités prédites normales et renforce le biais vers la classe `normal`.
-La version `improved_v2` impose l'ordre qualité, recherche d'opacité,
-incertitude, puis classe normale en dernier. Les garde-fous convertissent aussi
-`poor` et `limited + normal` en `uncertain`. Ces transformations sont
-journalisées dans `guardrail_actions` afin de les distinguer de la sortie du
-modèle.
+La version `improved_v2` réduit les opacités prédites normales, mais ne produit
+plus aucune détection positive et atteint un taux d'incertitude de 75 % sur le
+smoke test. Elle est conservée comme expérience, mais rejetée pour la suite.
+
+La version `improved_v3` donne la priorité à une opacité visible, même sur une
+vue AP ou portable, sauf si l'image est réellement non interprétable. Elle
+interdit aussi l'invention de causes ou d'antécédents. Les garde-fous
+convertissent `poor` et `limited + normal` en `uncertain`.
+
+Les sorties `raw_predicted_class`, `raw_confidence` et `raw_image_quality`
+conservent la décision du modèle avant garde-fous. `guardrail_actions` ne doit
+contenir que les transformations effectivement appliquées.
+
+Critères smoke pour `improved_v3` : au moins 3 opacités détectées sur 7, au
+maximum une opacité prédite normale et un taux d'incertitude inférieur à 75 %.
 
 ## Smoke test attendu
 

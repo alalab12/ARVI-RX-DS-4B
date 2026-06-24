@@ -145,6 +145,8 @@ result
 
 Le modele est charge au premier appel puis reutilise. La confiance retournee
 est declaree par le modele generatif et n'est pas une probabilite calibree.
+Les modes `improved_v1`, `improved_v2` et `improved_v3` conservent l'historique
+experimental. Le mode `improved` est un alias vers la version courante `v3`.
 
 ## Documentation projet
 
