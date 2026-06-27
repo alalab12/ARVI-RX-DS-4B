@@ -8,8 +8,9 @@ PROMPTS = {
     "baseline": ("baseline_prompt.txt", "baseline_v1"),
     "improved_v1": ("improved_v1_prompt.txt", "improved_v1"),
     "improved_v2": ("improved_v2_prompt.txt", "improved_v2"),
-    "improved_v3": ("improved_prompt.txt", "improved_v3"),
-    "improved": ("improved_prompt.txt", "improved_v3"),
+    "improved_v3": ("improved_v3_prompt.txt", "improved_v3"),
+    "improved_v4": ("improved_prompt.txt", "improved_v4"),
+    "improved": ("improved_prompt.txt", "improved_v4"),
 }
 
 

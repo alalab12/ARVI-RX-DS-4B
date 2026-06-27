@@ -33,6 +33,8 @@ def parse_prediction_json(raw_text: str) -> dict:
             continue
         try:
             value, _ = decoder.raw_decode(raw_text[position:])
+            if isinstance(value, dict) and "visual_evidence" not in value and "evidence" in value:
+                value["visual_evidence"] = value["evidence"]
             return PredictionPayload.model_validate(value).model_dump()
         except (json.JSONDecodeError, ValidationError, TypeError):
             continue

@@ -145,8 +145,11 @@ result
 
 Le modele est charge au premier appel puis reutilise. La confiance retournee
 est declaree par le modele generatif et n'est pas une probabilite calibree.
-Les modes `improved_v1`, `improved_v2` et `improved_v3` conservent l'historique
-experimental. Le mode `improved` est un alias vers la version courante `v3`.
+Les modes `improved_v1`, `improved_v2`, `improved_v3` et `improved_v4`
+conservent l'historique experimental. Le mode `improved` est un alias vers la
+version courante `v4`. La v4 garde la sensibilite de v3 aux opacites visibles,
+mais demande de retourner `uncertain` quand une image limitee ne montre qu'un
+flou basal vague ou une densite non specifique.
 
 ## Documentation projet
 

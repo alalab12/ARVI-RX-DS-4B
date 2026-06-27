@@ -56,6 +56,14 @@ contenir que les transformations effectivement appliquées.
 Critères smoke pour `improved_v3` : au moins 3 opacités détectées sur 7, au
 maximum une opacité prédite normale et un taux d'incertitude inférieur à 75 %.
 
+La version `improved_v4` vient du dev pilot de 30 images CheXpert. Elle garde
+la priorite aux opacites visibles, mais corrige l'effet principal observe avec
+v3 : les images `limited` etaient trop souvent classees `suspected_opacity` sur
+des formulations vagues comme "hazy lower lung fields" ou "could be due to
+various factors". La v4 demande donc `uncertain` quand l'evidence est non
+specifique, tout en gardant `suspected_opacity` pour une opacite visible,
+localisee ou clairement decrite.
+
 ## Smoke test attendu
 
 Avant toute démonstration, le dépôt doit passer un contrôle court :
