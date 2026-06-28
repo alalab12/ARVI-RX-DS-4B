@@ -1,6 +1,7 @@
 ---
 title: ARVI - Assistant radiologue virtuel
 sdk: gradio
+sdk_version: 5.49.1
 app_file: app/hf_space_app.py
 python_version: "3.11"
 suggested_hardware: t4-small

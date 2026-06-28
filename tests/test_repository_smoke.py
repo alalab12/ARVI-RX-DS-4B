@@ -255,6 +255,7 @@ def test_explanation_prompt_and_space_contract_are_frozen() -> None:
     assert hashlib.sha256(prompt_bytes).hexdigest() == config["prompt_sha256_canonical_lf"]
     assert config["decision_policy"].startswith("MedSigLIP remains")
     assert "sdk: gradio" in readme
+    assert "sdk_version: 5.49.1" in readme
     assert "suggested_hardware: t4-small" in readme
     assert 'api_name="classify"' in space_source
     assert 'api_name="explain"' in space_source
