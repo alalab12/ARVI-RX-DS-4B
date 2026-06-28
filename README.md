@@ -152,6 +152,17 @@ le pilote a ce stade. La v4 est rejetee car elle produit 90 % de sorties
 candidate a tester explicitement avec `mode="improved_v5"`; elle distingue
 l'incertitude sur la presence d'une opacite de l'incertitude sur sa cause.
 
+## Evaluer MedSigLIP sur Kaggle
+
+Le notebook `notebooks/04_medsiglip_zero_shot.ipynb` evalue
+`google/medsiglip-448` sur le split dev sans modifier le backend MedGemma. Il
+produit les scores bruts, calibre une zone `uncertain` sur les seuls labels
+definitifs, mesure la latence et compare les etudes mono-image aux etudes
+multi-images. Les seuils et le split final ne doivent pas etre ajustes ensemble.
+La configuration retenue est gelee dans
+`config/medsiglip_zero_shot_v1.json`. La cellule d'evaluation finale reste
+desactivee par defaut avec `RUN_FINAL = False`.
+
 ## Documentation projet
 
 - `docs/appel_offre.md` : cadrage et attendus du projet.

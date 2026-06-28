@@ -33,6 +33,8 @@ def test_repository_student_contract_is_present() -> None:
         "docs/architecture.md",
         "docs/ethique_et_limites.md",
         "docs/evaluation_protocol.md",
+        "config/medsiglip_zero_shot_v1.json",
+        "notebooks/04_medsiglip_zero_shot.ipynb",
         "data/synthetic_cases.csv",
         "src/inference.py",
         "src/guardrails.py",
@@ -57,6 +59,40 @@ def test_repository_student_contract_is_present() -> None:
 
     assert missing == []
     assert forbidden == []
+
+
+def test_medsiglip_notebook_contract_is_valid() -> None:
+    notebook_path = ROOT / "notebooks" / "04_medsiglip_zero_shot.ipynb"
+    notebook = json.loads(notebook_path.read_text(encoding="utf-8"))
+    config = json.loads(
+        (ROOT / "config" / "medsiglip_zero_shot_v1.json").read_text(encoding="utf-8")
+    )
+    source = "\n".join(
+        "".join(cell.get("source", [])) for cell in notebook.get("cells", [])
+    )
+
+    assert notebook["nbformat"] == 4
+    assert "google/medsiglip-448" in source
+    assert "SELECTION_CSV" in source
+    assert "split `final`" in source
+    assert "Metadonnees d'etude introuvables" in source
+    assert "relative_similarity_uncalibrated" in source
+    assert "RUN_FINAL = False" in source
+    assert "medsiglip_final_predictions.csv" in source
+    assert config["version"] == "medsiglip_zero_shot_v1"
+    assert config["model_id"] == "google/medsiglip-448"
+    assert config["low_threshold"] < config["high_threshold"]
+    assert config["dev_metrics"]["opacity_sensitivity"] >= 0.85
+    assert config["dev_metrics"]["normal_specificity"] >= 0.70
+
+    for index, cell in enumerate(notebook.get("cells", [])):
+        if cell.get("cell_type") != "code":
+            continue
+        python_source = "".join(
+            line for line in cell.get("source", [])
+            if not line.lstrip().startswith("%")
+        )
+        compile(python_source, f"medsiglip-notebook-cell-{index}", "exec")
 
 
 def test_synthetic_dataset_contract_is_valid() -> None:

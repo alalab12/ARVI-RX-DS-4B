@@ -78,6 +78,20 @@ reste fixe sur v3. Pour etre promue, v5 doit obtenir sur le meme pilote une
 sensibilite opacite d'au moins 80 %, au maximum une opacite predite `normal` et
 un taux d'incertitude inferieur ou egal a 50 %.
 
+## Decision MedSigLIP
+
+Le classifieur zero-shot `google/medsiglip-448` est retenu comme meilleur
+modele de decision apres calibration sur les 80 labels definitifs du dev. La
+configuration gelee `medsiglip_zero_shot_v1` utilise les seuils 0,3162987 et
+0,35. Elle obtient sur ce dev une ROC-AUC de 0,863, une accuracy stricte de
+81,25 %, une sensibilite opacite de 87,5 %, une specificite normale de 75 % et
+un taux d'incertitude de 5 %. Ces metriques sont optimistes car les seuils ont
+ete choisis sur le meme dev.
+
+Le split final ne doit etre execute qu'une fois avec le modele, les six textes
+zero-shot et les seuils figes. Les labels CheXpert `-1` restent analyses comme
+une cohorte ambigue et non comme une verite terrain visuelle `uncertain`.
+
 ## Smoke test attendu
 
 Avant toute démonstration, le dépôt doit passer un contrôle court :
