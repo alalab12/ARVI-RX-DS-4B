@@ -109,11 +109,15 @@ def test_medgemma_baseline_final_notebook_is_frozen() -> None:
         "".join(cell.get("source", [])) for cell in notebook.get("cells", [])
     )
     prompt_bytes = (ROOT / "prompts" / "baseline_prompt.txt").read_bytes()
+    prompt_bytes = prompt_bytes.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
 
     assert notebook["nbformat"] == 4
     assert config["model_id"] == "google/medgemma-4b-it"
     assert config["prompt_version"] == "baseline_v1"
-    assert hashlib.sha256(prompt_bytes).hexdigest() == config["prompt_sha256"]
+    assert (
+        hashlib.sha256(prompt_bytes).hexdigest()
+        == config["prompt_sha256_canonical_lf"]
+    )
     assert "RUN_BASELINE_FINAL = False" in source
     assert "medgemma_baseline_final_predictions.csv" in source
 
