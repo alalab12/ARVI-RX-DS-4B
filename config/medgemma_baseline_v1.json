@@ -1,0 +1,14 @@
+{
+  "version": "medgemma_baseline_v1",
+  "model_id": "google/medgemma-4b-it",
+  "mode": "baseline",
+  "prompt_version": "baseline_v1",
+  "prompt_sha256": "843123333ba95b45cc0900e55f0ab559a73a9be97f1a89777d62dda23070dd95",
+  "max_new_tokens": 512,
+  "generation": {
+    "do_sample": false
+  },
+  "confidence_type": "model_reported_uncalibrated",
+  "evaluation_split": "final",
+  "evaluation_policy": "Run once without prompt or guardrail changes."
+}

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import compileall
 import csv
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -33,8 +34,11 @@ def test_repository_student_contract_is_present() -> None:
         "docs/architecture.md",
         "docs/ethique_et_limites.md",
         "docs/evaluation_protocol.md",
+        "docs/journal_experimental.md",
+        "config/medgemma_baseline_v1.json",
         "config/medsiglip_zero_shot_v1.json",
         "notebooks/04_medsiglip_zero_shot.ipynb",
+        "notebooks/05_medgemma_baseline_final.ipynb",
         "data/synthetic_cases.csv",
         "src/inference.py",
         "src/guardrails.py",
@@ -93,6 +97,34 @@ def test_medsiglip_notebook_contract_is_valid() -> None:
             if not line.lstrip().startswith("%")
         )
         compile(python_source, f"medsiglip-notebook-cell-{index}", "exec")
+
+
+def test_medgemma_baseline_final_notebook_is_frozen() -> None:
+    notebook_path = ROOT / "notebooks" / "05_medgemma_baseline_final.ipynb"
+    notebook = json.loads(notebook_path.read_text(encoding="utf-8"))
+    config = json.loads(
+        (ROOT / "config" / "medgemma_baseline_v1.json").read_text(encoding="utf-8")
+    )
+    source = "\n".join(
+        "".join(cell.get("source", [])) for cell in notebook.get("cells", [])
+    )
+    prompt_bytes = (ROOT / "prompts" / "baseline_prompt.txt").read_bytes()
+
+    assert notebook["nbformat"] == 4
+    assert config["model_id"] == "google/medgemma-4b-it"
+    assert config["prompt_version"] == "baseline_v1"
+    assert hashlib.sha256(prompt_bytes).hexdigest() == config["prompt_sha256"]
+    assert "RUN_BASELINE_FINAL = False" in source
+    assert "medgemma_baseline_final_predictions.csv" in source
+
+    for index, cell in enumerate(notebook.get("cells", [])):
+        if cell.get("cell_type") != "code":
+            continue
+        python_source = "".join(
+            line for line in cell.get("source", [])
+            if not line.lstrip().startswith("%")
+        )
+        compile(python_source, f"medgemma-baseline-notebook-cell-{index}", "exec")
 
 
 def test_synthetic_dataset_contract_is_valid() -> None:

@@ -163,11 +163,17 @@ La configuration retenue est gelee dans
 `config/medsiglip_zero_shot_v1.json`. La cellule d'evaluation finale reste
 desactivee par defaut avec `RUN_FINAL = False`.
 
+Le notebook `notebooks/05_medgemma_baseline_final.ipynb` applique ensuite le
+baseline MedGemma fige sur le meme final. Son manifeste
+`config/medgemma_baseline_v1.json` contient notamment l'empreinte SHA-256 du
+prompt afin d'interdire une modification silencieuse apres evaluation.
+
 ## Documentation projet
 
 - `docs/appel_offre.md` : cadrage et attendus du projet.
 - `docs/architecture.md` : pipeline cible et composants techniques.
 - `docs/evaluation_protocol.md` : metriques et protocole de validation.
+- `docs/journal_experimental.md` : resultats, erreurs et decisions accumules.
 - `docs/ethique_et_limites.md` : avertissements, limites et garde-fous.
 - `docs/etat_de_l_art_choix_technos.md` : etat de l'art, choix technologiques
   et justification autour de CheXpert Small.
