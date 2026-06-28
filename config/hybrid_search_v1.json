@@ -1,0 +1,29 @@
+{
+  "version": "hybrid_search_v1",
+  "development_split": "dev",
+  "primary_config": "medsiglip_zero_shot_v1.json",
+  "secondary_config": "medgemma_baseline_v1.json",
+  "routing_definition": "Route scores inside [low_threshold - margin, high_threshold + margin].",
+  "candidate_margins": [
+    0.0,
+    0.025,
+    0.05,
+    0.075,
+    0.1
+  ],
+  "fusion_rule": "agreement_or_abstain",
+  "fusion_description": "Keep agreement, resolve a primary abstention with a definitive secondary class, and otherwise abstain.",
+  "selection_constraints": {
+    "opacity_to_normal_not_worse_than_primary": true,
+    "min_normal_specificity": 0.7,
+    "max_uncertain_rate": 0.25,
+    "max_routing_rate": 0.5
+  },
+  "selection_order": [
+    "strict_accuracy_desc",
+    "opacity_to_normal_rate_asc",
+    "normal_specificity_desc",
+    "routing_rate_asc"
+  ],
+  "evaluation_policy": "Develop on dev only. Never load final in this notebook. Evaluate a selected policy on a new untouched patient cohort."
+}

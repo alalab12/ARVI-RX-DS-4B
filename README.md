@@ -168,6 +168,12 @@ baseline MedGemma fige sur le meme final. Son manifeste
 `config/medgemma_baseline_v1.json` contient notamment l'empreinte SHA-256 du
 prompt afin d'interdire une modification silencieuse apres evaluation.
 
+Le notebook `notebooks/06_hybrid_medsiglip_medgemma_dev.ipynb` developpe enfin
+un routage selectif sur `dev` uniquement. Il reutilise les scores MedSigLIP,
+appelle MedGemma autour des seuils et compare des politiques conservatrices
+`agreement_or_abstain`. Il refuse toute ligne du split `final`; la politique
+candidate doit etre evaluee sur une nouvelle cohorte patient-disjointe.
+
 ## Documentation projet
 
 - `docs/appel_offre.md` : cadrage et attendus du projet.

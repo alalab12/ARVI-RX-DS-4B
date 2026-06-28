@@ -15,6 +15,7 @@ from fastapi.testclient import TestClient
 from api.main import app
 from api.main import health
 from src.guardrails import WARNING_TEXT, apply_safety_guardrails, validate_prediction
+from src.hybrid import agreement_or_abstain, routing_bounds
 from src.inference import predict, toy_predict
 from src.metrics import summarize_metrics
 from src.prompting import load_prompt
@@ -37,8 +38,10 @@ def test_repository_student_contract_is_present() -> None:
         "docs/journal_experimental.md",
         "config/medgemma_baseline_v1.json",
         "config/medsiglip_zero_shot_v1.json",
+        "config/hybrid_search_v1.json",
         "notebooks/04_medsiglip_zero_shot.ipynb",
         "notebooks/05_medgemma_baseline_final.ipynb",
+        "notebooks/06_hybrid_medsiglip_medgemma_dev.ipynb",
         "data/synthetic_cases.csv",
         "src/inference.py",
         "src/guardrails.py",
@@ -129,6 +132,49 @@ def test_medgemma_baseline_final_notebook_is_frozen() -> None:
             if not line.lstrip().startswith("%")
         )
         compile(python_source, f"medgemma-baseline-notebook-cell-{index}", "exec")
+
+
+def test_hybrid_dev_notebook_never_loads_final() -> None:
+    notebook_path = ROOT / "notebooks" / "06_hybrid_medsiglip_medgemma_dev.ipynb"
+    notebook = json.loads(notebook_path.read_text(encoding="utf-8"))
+    config = json.loads(
+        (ROOT / "config" / "hybrid_search_v1.json").read_text(encoding="utf-8")
+    )
+    source = "\n".join(
+        "".join(cell.get("source", [])) for cell in notebook.get("cells", [])
+    )
+
+    assert notebook["nbformat"] == 4
+    assert config["development_split"] == "dev"
+    assert config["fusion_rule"] == "agreement_or_abstain"
+    assert config["candidate_margins"] == [0.0, 0.025, 0.05, 0.075, 0.1]
+    assert "medsiglip_dev_predictions.csv" in source
+    assert "medgemma_routed_dev_predictions.csv" in source
+    assert "RUN_MEDGEMMA_SMOKE = False" in source
+    assert "RUN_MEDGEMMA_DEV = False" in source
+    assert 'eq("dev").all()' in source
+    assert 'eq("final")' not in source
+    assert "final_results" not in source
+
+    for index, cell in enumerate(notebook.get("cells", [])):
+        if cell.get("cell_type") != "code":
+            continue
+        python_source = "".join(
+            line for line in cell.get("source", [])
+            if not line.lstrip().startswith("%")
+        )
+        compile(python_source, f"hybrid-dev-notebook-cell-{index}", "exec")
+
+
+def test_hybrid_agreement_or_abstention_contract() -> None:
+    assert agreement_or_abstain("normal", "normal") == "normal"
+    assert agreement_or_abstain("suspected_opacity", "suspected_opacity") == "suspected_opacity"
+    assert agreement_or_abstain("normal", "suspected_opacity") == "uncertain"
+    assert agreement_or_abstain("suspected_opacity", "normal") == "uncertain"
+    assert agreement_or_abstain("uncertain", "normal") == "normal"
+    assert agreement_or_abstain("uncertain", "suspected_opacity") == "suspected_opacity"
+    assert agreement_or_abstain("normal", None) == "normal"
+    assert routing_bounds(0.05, 0.95, 0.10) == (0.0, 1.0)
 
 
 def test_synthetic_dataset_contract_is_valid() -> None:

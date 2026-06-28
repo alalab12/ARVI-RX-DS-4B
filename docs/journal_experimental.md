@@ -108,10 +108,50 @@ Sur les dix labels CheXpert `-1`, MedSigLIP retourne 70 %
 `suspected_opacity` et 30 % `normal`. Aucune accuracy n'est calculee sur cette
 cohorte.
 
+## Evaluation finale MedGemma baseline
+
+Le manifeste `medgemma_baseline_v1`, le prompt `baseline_v1` et la generation
+deterministe ont ete appliques au meme final, sans modification apres
+observation des resultats MedSigLIP. Un premier lancement entierement invalide
+a produit 30 erreurs d'environnement avant toute prediction. Il a ete relance
+apres correction des dependances et n'est pas compte comme une evaluation du
+modele.
+
+| Metrique | Valeur |
+|---|---:|
+| Cas definitifs | 20 |
+| Accuracy stricte | 0,700 |
+| Sensibilite opacite stricte | 0,500 |
+| Opacite vers normal | 0,200 |
+| Specificite normale | 0,900 |
+| Normal vers opacite | 0,000 |
+| Taux uncertain definitif | 0,200 |
+| Latence mediane | 21 697,5 ms/image |
+| Erreurs techniques du lancement valide | 0 |
+
+Matrice sur les labels definitifs :
+
+| Attendu | normal | suspected_opacity | uncertain |
+|---|---:|---:|---:|
+| normal | 9 | 0 | 1 |
+| suspected_opacity | 2 | 5 | 3 |
+
+Sur les dix labels CheXpert `-1`, MedGemma retourne 50 % `normal`, 30 %
+`suspected_opacity` et 20 % `uncertain`. Aucune accuracy n'est calculee sur
+cette cohorte.
+
+Pour une lecture de triage ou `suspected_opacity` et `uncertain` signifient
+`a revoir`, MedGemma atteint une sensibilite de 0,800 et une specificite de
+0,900 sur ce petit final. Ce point de fonctionnement est identique a celui de
+MedSigLIP en triage binaire, mais MedGemma est environ 40 fois plus lent et son
+accuracy stricte est inferieure de 0,15.
+
 ## Registre qualitatif des erreurs finales
 
 Cette revue visuelle est pedagogique et non clinique. Elle ne modifie pas les
 metriques officielles.
+
+### MedSigLIP
 
 | Patient | Attendu | Predit | Score | Categorie de revue | Observation |
 |---|---|---|---:|---|---|
@@ -122,11 +162,43 @@ metriques officielles.
 Ces scores sont eloignes de la zone d'abstention. Les recuperer par un simple
 elargissement des seuils degraderait fortement la specificite.
 
+### MedGemma baseline
+
+| Patient | Attendu | Predit | Confiance | Qualite | Observation |
+|---|---|---|---:|---|---|
+| patient28185 | normal | uncertain | 0,2 | good | Abstention sur un cas normal. |
+| patient16222 | suspected_opacity | uncertain | 0,2 | good | Evite le verdict normal produit par MedSigLIP, mais sans detection stricte. |
+| patient40396 | suspected_opacity | uncertain | 0,5 | limited | Opacite non tranchee avec qualite declaree limitee. |
+| patient17480 | suspected_opacity | normal | 0,9 | good | Faux rassurant a confiance auto-declaree elevee. |
+| patient06523 | suspected_opacity | uncertain | 0,2 | good | Opacite non tranchee malgre une qualite declaree bonne. |
+| patient24846 | suspected_opacity | normal | 0,8 | good | Faux rassurant commun avec MedSigLIP et possible decalage de label multi-vues. |
+
+L'analyse appariee montre une complementarite partielle : MedGemma abstient
+sur `patient16222`, manque `patient17480` que MedSigLIP detecte, et les deux
+modeles manquent `patient24846`. Cette observation motive un routage hybride,
+mais ne permet pas d'en definir les regles sur le final.
+
 ## Decision d'architecture
 
 - MedSigLIP v1 devient le modele de decision principal candidat.
-- MedGemma reste utile pour l'explication textuelle et les garde-fous.
+- MedGemma reste utile pour l'explication textuelle, l'abstention et les
+  garde-fous, mais pas comme classifieur principal dans sa version baseline.
 - Un desaccord futur entre classifieur et VLM devra etre expose, pas masque.
+- Les regles du pipeline hybride seront developpees exclusivement sur le dev.
+- Toute performance revendiquee pour ce nouveau pipeline exigera une nouvelle
+  cohorte de patients non observee.
 - LoRA MedGemma reste une extension optionnelle et non prioritaire.
-- La comparaison finale MedGemma baseline reste a executer avec sa
-  configuration figee.
+
+## Demarrage du developpement hybride
+
+Le notebook `06_hybrid_medsiglip_medgemma_dev.ipynb` formalise une recherche
+sur `dev` uniquement. MedSigLIP reste le modele primaire. MedGemma est route
+dans des bandes de marge predefinies autour des seuils et la fusion suit la
+regle `agreement_or_abstain` : accord conserve, abstention primaire resolue
+par une classe secondaire definitive, autre desaccord transforme en
+`uncertain`.
+
+Les marges candidates sont 0,000, 0,025, 0,050, 0,075 et 0,100. La selection
+interdit de degrader le taux `opacity -> normal` de MedSigLIP et contraint la
+specificite, l'abstention et le taux de routage. Le resultat restera une
+candidate de developpement jusqu'a son evaluation sur une nouvelle cohorte.
