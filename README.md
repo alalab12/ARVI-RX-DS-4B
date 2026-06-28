@@ -145,11 +145,12 @@ result
 
 Le modele est charge au premier appel puis reutilise. La confiance retournee
 est declaree par le modele generatif et n'est pas une probabilite calibree.
-Les modes `improved_v1`, `improved_v2`, `improved_v3` et `improved_v4`
-conservent l'historique experimental. Le mode `improved` est un alias vers la
-version courante `v4`. La v4 garde la sensibilite de v3 aux opacites visibles,
-mais demande de retourner `uncertain` quand une image limitee ne montre qu'un
-flou basal vague ou une densite non specifique.
+Les modes `improved_v1` a `improved_v5` conservent l'historique experimental.
+Le mode `improved` reste un alias vers `v3`, la meilleure version validee sur
+le pilote a ce stade. La v4 est rejetee car elle produit 90 % de sorties
+`uncertain` et ne detecte aucune des 10 opacites du dev pilot. La v5 est une
+candidate a tester explicitement avec `mode="improved_v5"`; elle distingue
+l'incertitude sur la presence d'une opacite de l'incertitude sur sa cause.
 
 ## Documentation projet
 

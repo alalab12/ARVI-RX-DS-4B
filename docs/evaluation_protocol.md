@@ -64,6 +64,20 @@ various factors". La v4 demande donc `uncertain` quand l'evidence est non
 specifique, tout en gardant `suspected_opacity` pour une opacite visible,
 localisee ou clairement decrite.
 
+La v4 est rejetee apres evaluation sur les 30 images du dev pilot : accuracy
+0,367, macro-F1 0,273, sensibilite opacite 0 % et taux d'incertitude 90 %. Les
+10 opacites ont ete classees `uncertain`. L'analyse montre que le prompt a
+confondu l'incertitude sur la cause d'une densite visible avec l'incertitude
+sur sa presence.
+
+La version `improved_v5` est une candidate non encore validee. Elle evalue
+d'abord si l'opacite est PRESENT, INDETERMINATE ou ABSENT, puis mappe cette
+presence vers la classe projet. Une opacite visible dont la cause est
+incertaine reste `suspected_opacity`. Jusqu'a validation, l'alias `improved`
+reste fixe sur v3. Pour etre promue, v5 doit obtenir sur le meme pilote une
+sensibilite opacite d'au moins 80 %, au maximum une opacite predite `normal` et
+un taux d'incertitude inferieur ou egal a 50 %.
+
 ## Smoke test attendu
 
 Avant toute démonstration, le dépôt doit passer un contrôle court :

@@ -163,26 +163,31 @@ def test_guardrail_does_not_report_a_no_op_conversion() -> None:
     assert pred["guardrail_actions"] == []
 
 
-def test_prompt_history_and_improved_v4_balances_sensitivity() -> None:
+def test_prompt_history_and_improved_v5_presence_policy() -> None:
     prompt_v1, version_v1 = load_prompt("improved_v1")
     prompt_v2, version_v2 = load_prompt("improved_v2")
     prompt_v3, version_v3 = load_prompt("improved_v3")
     prompt_v4, version_v4 = load_prompt("improved_v4")
+    prompt_v5, version_v5 = load_prompt("improved_v5")
     current_prompt, current_version = load_prompt("improved")
 
-    assert [version_v1, version_v2, version_v3, version_v4] == [
+    assert [version_v1, version_v2, version_v3, version_v4, version_v5] == [
         "improved_v1",
         "improved_v2",
         "improved_v3",
         "improved_v4",
+        "improved_v5",
     ]
-    assert len({prompt_v1, prompt_v2, prompt_v3, prompt_v4}) == 4
-    assert current_version == "improved_v4"
-    assert current_prompt == prompt_v4
+    assert len({prompt_v1, prompt_v2, prompt_v3, prompt_v4, prompt_v5}) == 5
+    assert current_version == "improved_v3"
+    assert current_prompt == prompt_v3
     assert "Positive opacity-related evidence has priority" in prompt_v3
     assert "Vague basal haze on a limited image" in prompt_v4
+    assert "Uncertainty about the cause is not uncertainty about presence" in prompt_v5
+    assert 'PRESENT -> "suspected_opacity"' in prompt_v5
     assert "AP, portable acquisition or visible devices alone" in prompt_v3
     assert "AP, portable acquisition or visible devices alone" in prompt_v4
+    assert "AP, portable acquisition or visible devices alone" in prompt_v5
 
 
 def test_medgemma_json_parser_accepts_fenced_output() -> None:
