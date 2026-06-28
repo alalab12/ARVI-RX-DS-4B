@@ -14,9 +14,11 @@ from fastapi.testclient import TestClient
 
 from api.main import app
 from api.main import health
+from src.explanation import ExplanationService, agreement_status
 from src.guardrails import WARNING_TEXT, apply_safety_guardrails, validate_prediction
 from src.hybrid import agreement_or_abstain, routing_bounds
 from src.inference import predict, toy_predict
+from src.medsiglip import classify_opacity_score
 from src.metrics import summarize_metrics
 from src.prompting import load_prompt
 from src.schemas import PredictionParseError, parse_prediction_json
@@ -36,7 +38,9 @@ def test_repository_student_contract_is_present() -> None:
         "docs/ethique_et_limites.md",
         "docs/evaluation_protocol.md",
         "docs/journal_experimental.md",
+        "docs/deployment_huggingface_space.md",
         "config/medgemma_baseline_v1.json",
+        "config/medgemma_explanation_v1.json",
         "config/medsiglip_zero_shot_v1.json",
         "config/hybrid_search_v1.json",
         "notebooks/04_medsiglip_zero_shot.ipynb",
@@ -44,7 +48,10 @@ def test_repository_student_contract_is_present() -> None:
         "notebooks/06_hybrid_medsiglip_medgemma_dev.ipynb",
         "data/synthetic_cases.csv",
         "src/inference.py",
+        "src/medsiglip.py",
+        "src/explanation.py",
         "src/guardrails.py",
+        "app/hf_space_app.py",
         "api/main.py",
         "eval/run_evaluation.py",
         "prompts/json_schema.md",
@@ -155,6 +162,8 @@ def test_hybrid_dev_notebook_never_loads_final() -> None:
     assert 'eq("dev").all()' in source
     assert 'eq("final")' not in source
     assert "final_results" not in source
+    assert "no_hybrid_candidate_met_constraints" in source
+    assert "conservation de MedSigLIP seul" in source
 
     for index, cell in enumerate(notebook.get("cells", [])):
         if cell.get("cell_type") != "code":
@@ -175,6 +184,83 @@ def test_hybrid_agreement_or_abstention_contract() -> None:
     assert agreement_or_abstain("uncertain", "suspected_opacity") == "suspected_opacity"
     assert agreement_or_abstain("normal", None) == "normal"
     assert routing_bounds(0.05, 0.95, 0.10) == (0.0, 1.0)
+
+
+def test_medsiglip_frozen_score_contract_without_loading_model() -> None:
+    class FakeBackend:
+        def predict(self, image):
+            assert image.mode == "RGB"
+            return {
+                "predicted_class": "suspected_opacity",
+                "score_opacity": 0.41,
+            }
+
+    image_path = ROOT / "data" / "sample_images" / "CXR_SYN_002_suspected_opacity.png"
+    result = predict(
+        image_path,
+        backend="medsiglip",
+        model_backend=FakeBackend(),
+    )
+
+    assert classify_opacity_score(0.20, 0.30, 0.40) == "normal"
+    assert classify_opacity_score(0.35, 0.30, 0.40) == "uncertain"
+    assert classify_opacity_score(0.45, 0.30, 0.40) == "suspected_opacity"
+    assert result["predicted_class"] == "suspected_opacity"
+    assert result["score_opacity"] == 0.41
+
+
+def test_medgemma_explanation_is_cached_and_never_changes_primary(tmp_path: Path) -> None:
+    class FakeBackend:
+        model_id = "fake-medgemma"
+
+        def generate(self, image, prompt):
+            assert image.mode == "RGB"
+            assert "independently" in prompt
+            return """{
+              "image_quality": "good",
+              "predicted_class": "suspected_opacity",
+              "confidence": 0.60,
+              "visual_evidence": ["Focal opacity-like density"],
+              "justification": "A focal increased density is visible.",
+              "limitations": ["No clinical context"],
+              "warning": "Educational prototype only"
+            }"""
+
+    service = ExplanationService(
+        cache_dir=tmp_path,
+        model_backend=FakeBackend(),
+    )
+    image_path = ROOT / "data" / "sample_images" / "CXR_SYN_002_suspected_opacity.png"
+
+    first = service.explain(image_path, primary_class="normal")
+    second = service.explain(image_path, primary_class="normal")
+
+    assert first["primary_class"] == "normal"
+    assert first["primary_class_unchanged"] is True
+    assert first["agreement_status"] == "disagreement"
+    assert first["cached"] is False
+    assert second["cached"] is True
+    assert agreement_status("uncertain", "normal") == "partial_disagreement"
+
+
+def test_explanation_prompt_and_space_contract_are_frozen() -> None:
+    config = json.loads(
+        (ROOT / "config" / "medgemma_explanation_v1.json").read_text(encoding="utf-8")
+    )
+    prompt_bytes = (ROOT / "prompts" / "explanation_prompt.txt").read_bytes()
+    prompt_bytes = prompt_bytes.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    space_source = (ROOT / "app" / "hf_space_app.py").read_text(encoding="utf-8")
+
+    assert hashlib.sha256(prompt_bytes).hexdigest() == config["prompt_sha256_canonical_lf"]
+    assert config["decision_policy"].startswith("MedSigLIP remains")
+    assert "sdk: gradio" in readme
+    assert "suggested_hardware: t4-small" in readme
+    assert 'api_name="classify"' in space_source
+    assert 'api_name="explain"' in space_source
+    assert space_source.count('concurrency_id="gpu_models"') == 2
+    assert 'decision_state["primary_class"]' in space_source
+    assert "Cette analyse ne modifie pas la decision MedSigLIP" in space_source
 
 
 def test_synthetic_dataset_contract_is_valid() -> None:

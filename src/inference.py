@@ -8,6 +8,7 @@ from typing import Any
 
 from .guardrails import apply_safety_guardrails
 from .medgemma import MedGemmaBackend
+from .medsiglip import MedSigLIPBackend
 from .preprocessing import basic_quality_flag
 from .preprocessing import load_image
 from .prompting import load_prompt
@@ -74,6 +75,13 @@ def get_medgemma_backend() -> MedGemmaBackend:
     return MedGemmaBackend()
 
 
+@lru_cache(maxsize=1)
+def get_medsiglip_backend() -> MedSigLIPBackend:
+    """Create one shared frozen MedSigLIP backend."""
+
+    return MedSigLIPBackend()
+
+
 def _uncertain_model_output(reason: str) -> dict[str, Any]:
     return {
         "image_quality": "limited",
@@ -90,7 +98,7 @@ def medgemma_predict(
     image_path: str | Path,
     prompt: str,
     prompt_version: str,
-    model_backend: MedGemmaBackend | None = None,
+    model_backend: Any | None = None,
 ) -> dict[str, Any]:
     """Run MedGemma, validate its JSON, and apply the safety contract."""
 
@@ -129,4 +137,8 @@ def predict(
     if selected_backend == "medgemma":
         prompt, prompt_version = load_prompt(mode)
         return medgemma_predict(image_path, prompt, prompt_version, model_backend)
+    if selected_backend == "medsiglip":
+        selected_model = model_backend or get_medsiglip_backend()
+        image = load_image(image_path, size=None)
+        return selected_model.predict(image)
     raise ValueError(f"Unknown model backend: {selected_backend}")

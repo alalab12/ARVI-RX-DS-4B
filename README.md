@@ -1,3 +1,15 @@
+---
+title: ARVI - Assistant radiologue virtuel
+sdk: gradio
+app_file: app/hf_space_app.py
+python_version: "3.11"
+suggested_hardware: t4-small
+models:
+  - google/medsiglip-448
+  - google/medgemma-4b-it
+pinned: false
+---
+
 # ARVI-RX-DS-4B
 
 Assistant radiologue virtuel responsable - projet EFREI Solution Delivery Data.
@@ -174,12 +186,21 @@ appelle MedGemma autour des seuils et compare des politiques conservatrices
 `agreement_or_abstain`. Il refuse toute ligne du split `final`; la politique
 candidate doit etre evaluee sur une nouvelle cohorte patient-disjointe.
 
+## Deployer la demonstration GPU
+
+Le point d'entree `app/hf_space_app.py` fournit une interface Gradio adaptee a
+un Hugging Face Space GPU. MedSigLIP produit la seule decision applicative;
+MedGemma genere, a la demande, une analyse textuelle independante et un statut
+de concordance. Le guide complet se trouve dans
+`docs/deployment_huggingface_space.md`.
+
 ## Documentation projet
 
 - `docs/appel_offre.md` : cadrage et attendus du projet.
 - `docs/architecture.md` : pipeline cible et composants techniques.
 - `docs/evaluation_protocol.md` : metriques et protocole de validation.
 - `docs/journal_experimental.md` : resultats, erreurs et decisions accumules.
+- `docs/deployment_huggingface_space.md` : deploiement GPU distant et cout.
 - `docs/ethique_et_limites.md` : avertissements, limites et garde-fous.
 - `docs/etat_de_l_art_choix_technos.md` : etat de l'art, choix technologiques
   et justification autour de CheXpert Small.

@@ -12,6 +12,7 @@ PROMPTS = {
     "improved_v4": ("improved_v4_prompt.txt", "improved_v4"),
     "improved_v5": ("improved_prompt.txt", "improved_v5"),
     "improved": ("improved_v3_prompt.txt", "improved_v3"),
+    "explanation": ("explanation_prompt.txt", "explanation_v1"),
 }
 
 

@@ -202,3 +202,36 @@ Les marges candidates sont 0,000, 0,025, 0,050, 0,075 et 0,100. La selection
 interdit de degrader le taux `opacity -> normal` de MedSigLIP et contraint la
 specificite, l'abstention et le taux de routage. Le resultat restera une
 candidate de developpement jusqu'a son evaluation sur une nouvelle cohorte.
+
+## Resultat de la recherche hybride v1 sur dev
+
+Aucune politique hybride n'a respecte la contrainte principale de securite.
+MedSigLIP seul conserve donc son statut de politique selectionnee.
+
+| Politique | Accuracy | Sensibilite stricte | Opacite vers normal | Specificite | Abstention | Routage | Latence estimee |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| MedSigLIP seul | 0,8125 | 0,875 | 0,075 | 0,750 | 0,0500 | 0,0000 | 531 ms |
+| Marge 0,000 | 0,8375 | 0,875 | 0,100 | 0,800 | 0,0125 | 0,0583 | 1 709 ms |
+| Marge 0,025 | 0,8375 | 0,875 | 0,100 | 0,800 | 0,0250 | 0,1583 | 3 622 ms |
+| Marge 0,050 | 0,8125 | 0,825 | 0,100 | 0,800 | 0,0500 | 0,2417 | 5 348 ms |
+| Marge 0,075 | 0,7750 | 0,750 | 0,100 | 0,800 | 0,0875 | 0,3083 | 6 701 ms |
+| Marge 0,100 | 0,7375 | 0,675 | 0,100 | 0,800 | 0,1250 | 0,4250 | 9 062 ms |
+
+La marge nulle augmente l'accuracy de 0,025 et la specificite de 0,05, mais
+transforme une opacite supplementaire en `normal` et multiplie la latence par
+environ 3,2. Les marges plus larges degradent progressivement la sensibilite
+et l'accuracy. Cette fusion decisionnelle est donc rejetee dans sa version v1.
+MedGemma peut toujours etre utilise apres la decision pour produire une
+explication, sans modifier la classe MedSigLIP.
+
+## Decision de deploiement
+
+Les postes de l'equipe ne disposent pas de GPU. La demonstration cible donc
+un Hugging Face Gradio Space avec un GPU `t4-small`. MedSigLIP fournit la
+decision principale et MedGemma est appele uniquement a la demande pour une
+analyse textuelle independante. Le resultat MedGemma est mis en cache par
+empreinte SHA-256 de l'image, modele et version de prompt.
+
+Le tarif public observe le 28 juin 2026 est de 0,40 USD par heure. Le Space
+doit etre mis en pause hors des sessions de travail. Le secret `HF_TOKEN` est
+configure dans les parametres Hugging Face et n'est jamais stocke dans Git.
