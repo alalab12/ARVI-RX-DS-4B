@@ -262,6 +262,10 @@ def test_explanation_prompt_and_space_contract_are_frozen() -> None:
     assert space_source.count('concurrency_id="gpu_models"') == 2
     assert 'decision_state["primary_class"]' in space_source
     assert "Cette analyse ne modifie pas la decision MedSigLIP" in space_source
+    assert '--arvi-ink: #172033' in space_source
+    assert 'elem_classes=["result-card", "decision-card"]' in space_source
+    assert 'elem_classes=["result-card", "explanation-card"]' in space_source
+    assert ".result-card .prose" in space_source
 
 
 def test_synthetic_dataset_contract_is_valid() -> None:

@@ -84,23 +84,112 @@ theme = gr.themes.Soft(
 )
 
 CSS = """
+html, body {
+  background: #edf3ef;
+  color-scheme: light;
+}
 .gradio-container {
+  --arvi-ink: #172033;
+  --arvi-muted: #526174;
+  --arvi-surface: rgba(255, 255, 255, 0.92);
+  color: var(--arvi-ink) !important;
+  min-height: 100vh;
   background:
-    radial-gradient(circle at 12% 8%, rgba(217, 119, 6, 0.15), transparent 28rem),
-    linear-gradient(145deg, #f8f4ea 0%, #edf4f1 52%, #e7edf3 100%);
+    radial-gradient(circle at 10% 7%, rgba(217, 119, 6, 0.20), transparent 30rem),
+    radial-gradient(circle at 88% 18%, rgba(15, 118, 110, 0.15), transparent 26rem),
+    linear-gradient(145deg, #fffaf0 0%, #edf6f2 52%, #e7eef4 100%);
+}
+.hero-block {
+  background: var(--arvi-surface);
+  border: 1px solid rgba(71, 85, 105, 0.18);
+  border-radius: 18px;
+  box-shadow: 0 18px 44px rgba(30, 41, 59, 0.08);
+  margin-bottom: 1.25rem;
+  padding: 1.2rem 1.35rem;
+}
+.hero-block .prose,
+.hero-block .prose p {
+  color: var(--arvi-muted) !important;
 }
 .hero {
   border-left: 6px solid #b45309;
   padding: 0.4rem 0 0.4rem 1.2rem;
   margin-bottom: 1rem;
 }
-.hero h1 { color: #172033; letter-spacing: -0.035em; }
+.hero h1 {
+  color: var(--arvi-ink) !important;
+  letter-spacing: -0.035em;
+  margin-bottom: 0.35rem;
+}
+.hero p {
+  color: var(--arvi-muted) !important;
+  margin: 0;
+}
 .safety-note {
   background: #fff7df;
   border: 1px solid #d6a74f;
   border-radius: 12px;
-  color: #5c3a05;
+  color: #5c3a05 !important;
   padding: 0.85rem 1rem;
+}
+.results-column {
+  gap: 1rem;
+}
+.result-card {
+  background: var(--arvi-surface) !important;
+  border: 1px solid rgba(71, 85, 105, 0.18) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 14px 34px rgba(30, 41, 59, 0.08);
+  padding: 1rem 1.15rem !important;
+}
+.result-card .prose,
+.result-card .prose :where(h1, h2, h3, h4, p, li, strong, em, span) {
+  color: var(--arvi-ink) !important;
+}
+.result-card .prose p,
+.result-card .prose li {
+  line-height: 1.55;
+}
+.result-card .prose code {
+  background: #ffedd5 !important;
+  border: 1px solid #fed7aa;
+  border-radius: 5px;
+  color: #7c2d12 !important;
+  padding: 0.08rem 0.32rem;
+}
+.decision-card {
+  border-top: 4px solid #c2410c !important;
+}
+.decision-card .prose h2 {
+  color: #9a3412 !important;
+}
+.explanation-card {
+  border-top: 4px solid #0f766e !important;
+}
+.explanation-card .prose h2 {
+  color: #115e59 !important;
+}
+.trace-card {
+  border: 1px solid rgba(30, 41, 59, 0.24) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 12px 28px rgba(30, 41, 59, 0.10);
+  overflow: hidden;
+}
+@media (max-width: 768px) {
+  .gradio-container {
+    padding-left: 0.7rem !important;
+    padding-right: 0.7rem !important;
+  }
+  .hero-block {
+    border-radius: 14px;
+    padding: 0.9rem;
+  }
+  .hero {
+    padding-left: 0.8rem;
+  }
+  .result-card {
+    padding: 0.85rem 0.9rem !important;
+  }
 }
 """
 
@@ -115,7 +204,8 @@ with gr.Blocks(theme=theme, css=CSS, title="ARVI - Assistant radiologue virtuel"
         <div class="safety-note">
           Prototype pedagogique. Non destine au diagnostic. Toute image doit etre verifiee par un professionnel qualifie.
         </div>
-        """
+        """,
+        elem_classes=["hero-block"],
     )
 
     with gr.Row(equal_height=False):
@@ -134,11 +224,25 @@ with gr.Blocks(theme=theme, css=CSS, title="ARVI - Assistant radiologue virtuel"
                     "2. Generer l'analyse MedGemma",
                     variant="secondary",
                 )
-        with gr.Column(scale=6):
-            classification_summary = gr.Markdown("## Decision principale\nEn attente d'une image.")
-            classification_json = gr.JSON(label="Trace MedSigLIP", open=False)
-            explanation_summary = gr.Markdown("## Analyse textuelle\nDeclenchee uniquement a la demande.")
-            explanation_json = gr.JSON(label="Trace MedGemma", open=False)
+        with gr.Column(scale=6, elem_classes=["results-column"]):
+            classification_summary = gr.Markdown(
+                "## Decision principale\nEn attente d'une image.",
+                elem_classes=["result-card", "decision-card"],
+            )
+            classification_json = gr.JSON(
+                label="Trace MedSigLIP",
+                open=False,
+                elem_classes=["trace-card"],
+            )
+            explanation_summary = gr.Markdown(
+                "## Analyse textuelle\nDeclenchee uniquement a la demande.",
+                elem_classes=["result-card", "explanation-card"],
+            )
+            explanation_json = gr.JSON(
+                label="Trace MedGemma",
+                open=False,
+                elem_classes=["trace-card"],
+            )
 
     classify_button.click(
         classify_image,
