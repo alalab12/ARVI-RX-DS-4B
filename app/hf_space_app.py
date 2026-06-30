@@ -10,13 +10,18 @@ from src.inference import predict
 
 LABELS = {
     "normal": "Normal",
-    "suspected_opacity": "Opacite suspectee",
+    "suspected_opacity": "Opacité suspectée",
     "uncertain": "Incertain",
+}
+QUALITY_LABELS = {
+    "good": "Bonne",
+    "limited": "Limitée",
+    "poor": "Mauvaise",
 }
 AGREEMENT_LABELS = {
     "agreement": "Accord entre les deux analyses",
-    "partial_disagreement": "Desaccord partiel: au moins un modele est incertain",
-    "disagreement": "Desaccord entre MedSigLIP et l'analyse MedGemma",
+    "partial_disagreement": "Désaccord partiel : au moins un modèle est incertain",
+    "disagreement": "Désaccord entre MedSigLIP et l'analyse MedGemma",
 }
 explanation_service = ExplanationService()
 
@@ -30,11 +35,11 @@ def classify_image(image_path: str | None) -> tuple[str, dict[str, Any], dict[st
     score = result["score_opacity"]
     summary = (
         f"## {LABELS[predicted_class]}\n"
-        f"**Score relatif d'opacite :** `{score:.3f}`  \n"
-        f"**Seuils figes :** normal <= `{result['low_threshold']:.3f}`, "
-        f"opacite >= `{result['high_threshold']:.3f}`  \n"
+        f"**Score relatif d'opacité :** `{score:.3f}`  \n"
+        f"**Seuils figés :** normal <= `{result['low_threshold']:.3f}`, "
+        f"opacité >= `{result['high_threshold']:.3f}`  \n"
         f"**Latence :** `{result['latency_ms']} ms`\n\n"
-        "Le score est une similarite relative non calibree, pas une probabilite clinique."
+        "Le score est une similarité relative non calibrée, pas une probabilité clinique."
     )
     state = {
         "image_sha256": hash_image(image_path),
@@ -60,18 +65,22 @@ def explain_image(
     )
     analysis = response["analysis"]
     agreement = AGREEMENT_LABELS[response["agreement_status"]]
-    cache_note = "resultat mis en cache" if response["cached"] else "nouvelle inference"
-    evidence = analysis.get("visual_evidence") or ["Aucune observation valide retournee"]
+    cache_note = "résultat mis en cache" if response["cached"] else "nouvelle inférence"
+    evidence = analysis.get("visual_evidence") or ["Aucune observation valide retournée"]
     evidence_markdown = "\n".join(f"- {item}" for item in evidence)
+    quality_label = QUALITY_LABELS.get(
+        analysis["image_quality"],
+        analysis["image_quality"],
+    )
     summary = (
-        f"## Analyse textuelle independante\n"
+        f"## Analyse textuelle indépendante\n"
         f"**Concordance :** {agreement}  \n"
-        f"**Qualite declaree :** `{analysis['image_quality']}`  \n"
-        f"**Evaluation MedGemma :** `{LABELS[analysis['predicted_class']]}`  \n"
-        f"**Execution :** {cache_note}\n\n"
-        f"**Elements visibles rapportes**\n{evidence_markdown}\n\n"
+        f"**Qualité déclarée :** `{quality_label}`  \n"
+        f"**Évaluation MedGemma :** `{LABELS[analysis['predicted_class']]}`  \n"
+        f"**Exécution :** {cache_note}\n\n"
+        f"**Éléments visibles rapportés**\n{evidence_markdown}\n\n"
         f"**Justification prudente**\n{analysis['justification']}\n\n"
-        "Cette analyse ne modifie pas la decision MedSigLIP."
+        "Cette analyse ne modifie pas la décision MedSigLIP."
     )
     return summary, response
 
@@ -108,29 +117,31 @@ html, body {
   padding: 1.2rem 1.35rem;
 }
 .hero-block .prose,
-.hero-block .prose p {
+.hero-block .prose p,
+.hero-block p {
   color: var(--arvi-muted) !important;
 }
-.hero {
+.hero-block .prose h1,
+.hero-block h1 {
   border-left: 6px solid #b45309;
-  padding: 0.4rem 0 0.4rem 1.2rem;
-  margin-bottom: 1rem;
-}
-.hero h1 {
   color: var(--arvi-ink) !important;
   letter-spacing: -0.035em;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.65rem;
+  padding: 0.25rem 0 0.25rem 1rem;
 }
-.hero p {
-  color: var(--arvi-muted) !important;
-  margin: 0;
-}
-.safety-note {
+.hero-block .prose blockquote,
+.hero-block blockquote {
   background: #fff7df;
   border: 1px solid #d6a74f;
+  border-left: 5px solid #b45309;
   border-radius: 12px;
+  margin: 0.9rem 0 0;
+  padding: 0.75rem 0.95rem;
+}
+.hero-block .prose blockquote p,
+.hero-block blockquote p {
   color: #5c3a05 !important;
-  padding: 0.85rem 1rem;
+  margin: 0;
 }
 .results-column {
   gap: 1rem;
@@ -184,8 +195,9 @@ html, body {
     border-radius: 14px;
     padding: 0.9rem;
   }
-  .hero {
-    padding-left: 0.8rem;
+  .hero-block .prose h1,
+  .hero-block h1 {
+    padding-left: 0.75rem;
   }
   .result-card {
     padding: 0.85rem 0.9rem !important;
@@ -197,13 +209,10 @@ with gr.Blocks(theme=theme, css=CSS, title="ARVI - Assistant radiologue virtuel"
     decision_state = gr.State({})
     gr.Markdown(
         """
-        <div class="hero">
-          <h1>ARVI</h1>
-          <p>Lecture assistee d'une radiographie thoracique, du signal rapide au commentaire prudent.</p>
-        </div>
-        <div class="safety-note">
-          Prototype pedagogique. Non destine au diagnostic. Toute image doit etre verifiee par un professionnel qualifie.
-        </div>
+# ARVI
+Lecture assistée d'une radiographie thoracique, du signal rapide au commentaire prudent.
+
+> **Prototype pédagogique.** Non destiné au diagnostic. Toute image doit être vérifiée par un professionnel qualifié.
         """,
         elem_classes=["hero-block"],
     )
@@ -221,12 +230,12 @@ with gr.Blocks(theme=theme, css=CSS, title="ARVI - Assistant radiologue virtuel"
                     variant="primary",
                 )
                 explain_button = gr.Button(
-                    "2. Generer l'analyse MedGemma",
+                    "2. Générer l'analyse MedGemma",
                     variant="secondary",
                 )
         with gr.Column(scale=6, elem_classes=["results-column"]):
             classification_summary = gr.Markdown(
-                "## Decision principale\nEn attente d'une image.",
+                "## Décision principale\nEn attente d'une image.",
                 elem_classes=["result-card", "decision-card"],
             )
             classification_json = gr.JSON(
@@ -235,7 +244,7 @@ with gr.Blocks(theme=theme, css=CSS, title="ARVI - Assistant radiologue virtuel"
                 elem_classes=["trace-card"],
             )
             explanation_summary = gr.Markdown(
-                "## Analyse textuelle\nDeclenchee uniquement a la demande.",
+                "## Analyse textuelle\nDéclenchée uniquement à la demande.",
                 elem_classes=["result-card", "explanation-card"],
             )
             explanation_json = gr.JSON(

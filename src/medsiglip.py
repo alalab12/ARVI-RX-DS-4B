@@ -12,8 +12,8 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG_PATH = ROOT / "config" / "medsiglip_zero_shot_v1.json"
 WARNING = (
-    "Prototype pedagogique. Non destine au diagnostic. "
-    "Validation par un professionnel qualifie requise."
+    "Prototype pédagogique. Non destiné au diagnostic. "
+    "Validation par un professionnel qualifié requise."
 )
 
 
