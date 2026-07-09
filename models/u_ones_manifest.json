@@ -1,0 +1,30 @@
+{
+  "strategy": "u_ones",
+  "model_file": "arvi_cxr_classifier_u_ones.onnx",
+  "model_sha256": "aabe9a661f045ab3c737c1859964a38791bdefaa77fb25c55aa9a69a62723780",
+  "model_size_bytes": 90449,
+  "external_data_file": "arvi_cxr_classifier_u_ones.onnx.data",
+  "external_data_sha256": "c0d718948de77316d7a51b0d931f6833a69530294fc1a73a75d42f8fdea7b79b",
+  "external_data_size_bytes": 44695552,
+  "external_data_received": true,
+  "training_notebook": "notebooks/07_train_resnet18_u_ones.ipynb",
+  "configuration": "config/onnx_u_ones.json",
+  "runtime_validation": {
+    "status": "passed",
+    "date": "2026-07-02",
+    "onnxruntime_version": "1.27.0",
+    "provider": "CPUExecutionProvider",
+    "input": {
+      "name": "input",
+      "shape": ["batch", 3, 224, 224],
+      "type": "tensor(float)"
+    },
+    "output": {
+      "name": "logits",
+      "shape": ["batch", 2],
+      "type": "tensor(float)"
+    },
+    "smoke_images": 2,
+    "performance_interpretation": "none_synthetic_images_only"
+  }
+}

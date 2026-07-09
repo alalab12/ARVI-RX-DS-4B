@@ -1,0 +1,31 @@
+{
+  "strategy": "u_zeros",
+  "model_file": "arvi_cxr_classifier_u_zeros.onnx",
+  "model_sha256": "c2b855c2e0cdd5377900e966d50d6b234a300ec9fa8a9b4ba2e3f8d12696d046",
+  "model_size_bytes": 90486,
+  "external_data_file": "arvi_cxr_classifier_u_zeros.onnx.data",
+  "external_data_sha256": "a51fe37a9a17c00b653502abf935099ced9b0aaafe009f09d68cd41d21daaa5b",
+  "external_data_size_bytes": 44695552,
+  "external_data_received": true,
+  "training_notebook": "notebooks/08_train_resnet18_u_zeros.ipynb",
+  "training_notebook_sha256": "d16933534becdde1d8201c3f1c40aa72829bc4a31b73adcb1044de57645335d0",
+  "configuration": "config/onnx_u_zeros.json",
+  "runtime_validation": {
+    "status": "passed",
+    "date": "2026-07-02",
+    "onnxruntime_version": "1.27.0",
+    "provider": "CPUExecutionProvider",
+    "input": {
+      "name": "input",
+      "shape": ["batch", 3, 224, 224],
+      "type": "tensor(float)"
+    },
+    "output": {
+      "name": "logits",
+      "shape": ["batch", 2],
+      "type": "tensor(float)"
+    },
+    "smoke_images": 2,
+    "performance_interpretation": "none_synthetic_images_only"
+  }
+}

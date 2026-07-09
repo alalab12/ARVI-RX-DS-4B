@@ -1,56 +1,43 @@
-# Architecture cible
-> **Author :** Badr TAJINI 
-> **Solution Delivery - filière Data** 
->  **Année académique :** 2025-2026
+# Architecture ARVI
+
 ## Pipeline
 
 ```text
-Image upload → Preprocessing → MedGemma + prompt → JSON parser → Guardrails → UI → SQLite logs
+Image → validation du format → prétraitement configuré
+      → ONNX Runtime → softmax → classe et scores
+      → abstention éventuelle → garde-fous → Streamlit/API
 ```
 
-## Composants
+## Composants conservés
 
-- `src/preprocessing.py` : validation de fichier, chargement image, resizing.
-- `src/medgemma.py` : chargement paresseux du processor et du modèle MedGemma.
-- `src/prompting.py` : chargement et versionnement des prompts.
-- `src/schemas.py` : validation Pydantic du JSON généré.
-- `src/inference.py` : orchestration commune des backends jouet et MedGemma.
-- `src/guardrails.py` : validation JSON, warning, incertitude.
-- `src/metrics.py` : accuracy, macro-F1, sensibilité, spécificité, validité JSON.
-- `src/database.py` : initialisation SQLite et stockage des runs.
-- `api/main.py` : endpoint FastAPI `/predict`.
-- `app/streamlit_app.py` et `app/gradio_app.py` : interfaces rapides.
+- `app/streamlit_app.py` : interface principale et sélection des variantes.
+- `api/main.py` : endpoint HTTP `POST /predict`.
+- `src/onnx_backend.py` : chargement ONNX, prétraitement et post-traitement.
+- `src/inference.py` : orchestration ONNX et mode synthétique de test.
+- `src/preprocessing.py` : chargement sécurisé des images.
+- `src/guardrails.py` : validation de la sortie et avertissement obligatoire.
+- `config/onnx_models.json` : registre des variantes disponibles.
+- `config/onnx_*.json` : contrat exact de chaque modèle.
 
-Le backend est sélectionné avec `MODEL_BACKEND=toy|medgemma`. Le mode jouet
-reste la valeur par défaut pour les tests locaux. Sur Kaggle, MedGemma est
-chargé au premier appel puis réutilisé pour les prédictions suivantes.
+Une session ONNX Runtime est chargée à la demande et mise en cache pour chaque
+configuration. Les fichiers `.onnx.data` sont vérifiés avant le chargement.
 
-## Endpoint attendu
+## Sortie commune
 
-```http
-POST /predict
-Content-Type: multipart/form-data
-```
-
-Réponse :
+Chaque prédiction contient notamment :
 
 ```json
 {
   "predicted_class": "normal | suspected_opacity | uncertain",
   "confidence": 0.0,
-  "visual_evidence": [],
-  "justification": "...",
+  "class_scores": {},
   "limitations": [],
-  "warning": "Prototype pédagogique. Non destiné au diagnostic. Validation par un professionnel qualifié requise.",
-  "model_name": "toy-rule-baseline",
-  "prompt_version": "baseline_v1",
+  "warning": "Prototype pédagogique...",
+  "model_name": "...",
+  "model_version": "...",
   "latency_ms": 0
 }
 ```
 
-## Objectifs d'intégration
-
-- '>= 95 %' JSON valide.
-- 100 % des sorties avec warning.
-- 100 % des runs sauvegardés.
-- Latence cible < 10 s en mode prototype.
+Les scores du modèle ne sont pas présentés comme des probabilités cliniques
+calibrées.

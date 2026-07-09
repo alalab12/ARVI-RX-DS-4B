@@ -1,0 +1,15 @@
+{
+  "default_model": "u_ones",
+  "models": {
+    "u_ones": {
+      "label": "Modèle 1 — U-Ones",
+      "description": "ResNet-18 binaire ; les labels CheXpert incertains (-1) sont regroupés avec opacité suspectée.",
+      "config_path": "config/onnx_u_ones.json"
+    },
+    "u_zeros": {
+      "label": "Modèle 2 — U-Zeros",
+      "description": "ResNet-18 binaire ; les labels CheXpert incertains (-1) sont regroupés avec normal.",
+      "config_path": "config/onnx_u_zeros.json"
+    }
+  }
+}

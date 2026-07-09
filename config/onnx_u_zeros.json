@@ -1,0 +1,34 @@
+{
+  "version": "u_zeros_v1",
+  "status": "runtime_validated_local",
+  "strategy": "u_zeros",
+  "model_name": "arvi-cxr-resnet18-u-zeros",
+  "architecture": "torchvision.resnet18",
+  "model_path": "models/arvi_cxr_classifier_u_zeros.onnx",
+  "companion_files": [
+    "arvi_cxr_classifier_u_zeros.onnx.data"
+  ],
+  "input_name": "input",
+  "output_name": "logits",
+  "input_size": [224, 224],
+  "input_layout": "NCHW",
+  "color_mode": "RGB",
+  "resize_resample": "bilinear",
+  "normalization": {
+    "scale": "zero_one",
+    "mean": [0.485, 0.456, 0.406],
+    "std": [0.229, 0.224, 0.225]
+  },
+  "class_names": ["normal", "suspected_opacity"],
+  "label_policy": "Lung Opacity 1 -> suspected_opacity; 0, -1 and missing -> normal",
+  "output_type": "logits",
+  "confidence_threshold": 0.0,
+  "min_top2_margin": 0.0,
+  "providers": ["CPUExecutionProvider"],
+  "integration_notes": [
+    "Le notebook ne calibre aucun seuil d'abstention : les seuils restent à zéro.",
+    "L'ordre des classes correspond aux indices de sortie 0=normal, 1=suspected_opacity.",
+    "La stratégie u_zeros assimile les labels incertains à la classe normal pendant l'entraînement.",
+    "Ne pas régler les seuils sur le split final."
+  ]
+}
